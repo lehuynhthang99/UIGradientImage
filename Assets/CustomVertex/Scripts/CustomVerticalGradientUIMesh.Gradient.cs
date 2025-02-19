@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Sprites;
 using UnityEngine.UI;
 
 namespace Nura.CustomGradientImage
@@ -25,20 +26,21 @@ namespace Nura.CustomGradientImage
 
             _gradientPoints = new GradientPoint[]
             {
-            new GradientPoint()
-            {
-                normalizedPosition = 1,
-                vertexColor = Color.white,
-            },
-            new GradientPoint()
-            {
-                normalizedPosition = 0,
-                vertexColor = Color.white,
-            }
+                new GradientPoint()
+                {
+                    normalizedPosition = 1,
+                    vertexColor = Color.white,
+                },
+                new GradientPoint()
+                {
+                    normalizedPosition = 0,
+                    vertexColor = Color.white,
+                }
             };
         }
 #endif
 
+        //client code can interact with this to change gradinet
         public void SetGradientPoints(GradientPoint[] gradientPoints)
         {
             if (gradientPoints == null || gradientPoints.Length < 2)
@@ -97,6 +99,12 @@ namespace Nura.CustomGradientImage
             //x,y: bottom left corner; z,w: top right corner
             //Vector4 border = new Vector4(bottomLeftCorner.x, bottomLeftCorner.y, bottomLeftCorner.x + rect.width, bottomLeftCorner.y + rect.height);
 
+            //handle if sprite in sprite atlas
+            Vector4 spriteUVInAtlas = sprite ? DataUtility.GetOuterUV(sprite) : Vector4.zero;
+            Vector2 horizontalMap = new Vector2(spriteUVInAtlas.x, spriteUVInAtlas.z);
+            Vector2 verticalMap = new Vector2(spriteUVInAtlas.y, spriteUVInAtlas.w);
+
+            //add vertex for each point in gradient
             for (int i = _gradientPoints.Length - 1; i > 0; i--)
             {
                 GradientPoint firstGradientPoint = _gradientPoints[i];
@@ -105,6 +113,13 @@ namespace Nura.CustomGradientImage
                 Vector2 corner2 = new Vector2(bottomLeftCorner.x + rectWidth, bottomLeftCorner.y + secondGradientPoint.normalizedPosition * rectHeight);
                 Vector2 uvCorner1 = new Vector2(0, firstGradientPoint.normalizedPosition);
                 Vector2 uvCorner2 = new Vector2(1, secondGradientPoint.normalizedPosition);
+
+                //remap from (0, 1) uv coordinate to the sprite uv in sprite atlas coordinate
+                uvCorner1.x = Mathf.Lerp(horizontalMap.x, horizontalMap.y, uvCorner1.x);
+                uvCorner2.x = Mathf.Lerp(horizontalMap.x, horizontalMap.y, uvCorner2.x);
+                uvCorner1.y = Mathf.Lerp(verticalMap.x, verticalMap.y, uvCorner1.y);
+                uvCorner2.y = Mathf.Lerp(verticalMap.x, verticalMap.y, uvCorner2.y);
+
                 AddQuad(vh, corner1, corner2, uvCorner1, uvCorner2, firstGradientPoint.vertexColor, secondGradientPoint.vertexColor);
             }
         }
